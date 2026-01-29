@@ -28,7 +28,7 @@ const UI = {
     document.getElementById(id).classList.add('hidden');
   },
   showOnly(id) {
-    ['loading-view', 'token-view', 'device-select-view', 'main-view'].forEach(viewId => {
+    ['loading-view', 'token-view', 'device-select-view', 'main-view', 'detail-view'].forEach(viewId => {
       if (viewId === id) {
         this.show(viewId);
       } else {
@@ -64,9 +64,13 @@ async function fetchAppliances(token) {
   return response.json();
 }
 
-async function controlAC(token, applianceId, action) {
-  const body = action === 'on' ? 'button=' : 'button=power-off';
-  
+async function setAirconSettings(token, applianceId, params) {
+  const body = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    body.set(k, String(v));
+  });
+
   const response = await fetch(`${API_BASE}/appliances/${applianceId}/aircon_settings`, {
     method: 'POST',
     headers: {
@@ -75,12 +79,17 @@ async function controlAC(token, applianceId, action) {
     },
     body
   });
-  
+
   if (!response.ok) {
     throw new Error(`操作に失敗: ${response.status}`);
   }
-  
+
   return response.json();
+}
+
+async function controlAC(token, applianceId, action) {
+  const params = action === 'on' ? { button: '' } : { button: 'power-off' };
+  return setAirconSettings(token, applianceId, params);
 }
 
 // トークン入力画面
@@ -205,7 +214,9 @@ async function showMainView() {
       if (found && found.settings) {
         statuses[ac.id] = {
           isOn: found.settings.button !== 'power-off',
-          mode: found.settings.mode
+          mode: found.settings.mode,
+          temp: found.settings.temp,
+          tempUnit: found.settings.temp_unit
         };
       }
     });
@@ -246,6 +257,79 @@ function getModeIcon(mode) {
   }
 }
 
+function getModeLabel(mode) {
+  switch (mode) {
+    case 'cool':
+      return '冷房';
+    case 'warm':
+      return '暖房';
+    case 'dry':
+      return '除湿';
+    case 'blow':
+      return '送風';
+    case 'auto':
+      return '自動';
+    default:
+      return '—';
+  }
+}
+
+function showDetailView({ ac, status, token }) {
+  UI.showOnly('detail-view');
+
+  const title = document.getElementById('detail-title');
+  const modeSelect = document.getElementById('detail-mode');
+  const tempInput = document.getElementById('detail-temp');
+  const errorBox = document.getElementById('detail-error');
+  const btnApply = document.getElementById('btn-apply-detail');
+  const btnBack = document.getElementById('btn-back-to-main');
+
+  // 初期値
+  const icon = getModeIcon(status?.mode);
+  title.textContent = `${icon} ${ac.name}`;
+  modeSelect.value = status?.mode || 'auto';
+  tempInput.value = status?.temp || '';
+  errorBox.classList.add('hidden');
+
+  btnBack.onclick = () => showMainView();
+
+  btnApply.onclick = async () => {
+    const operation_mode = modeSelect.value;
+    const rawTemp = tempInput.value.trim();
+
+    errorBox.classList.add('hidden');
+
+    if (rawTemp && !/^\d+(\.\d+)?$/.test(rawTemp)) {
+      errorBox.textContent = '温度は数値で入力してください';
+      errorBox.classList.remove('hidden');
+      return;
+    }
+
+    btnApply.disabled = true;
+    btnApply.innerHTML = '<span class="loading"></span> 適用中...';
+
+    try {
+      // NOTE: swagger上は必須項目が多いが、実際は部分的な更新が可能なため必要なものだけ送る
+      const params = {
+        button: '', // 変更を適用するためON扱いにする
+        operation_mode
+      };
+      if (rawTemp) params.temperature = rawTemp;
+
+      await setAirconSettings(token, ac.id, params);
+      showToast(`${ac.name}の設定を更新しました`);
+      await showMainView();
+    } catch (error) {
+      const detail = error?.message ? ` (${error.message})` : '';
+      errorBox.textContent = `更新に失敗しました${detail}`;
+      errorBox.classList.remove('hidden');
+    } finally {
+      btnApply.disabled = false;
+      btnApply.textContent = '適用';
+    }
+  };
+}
+
 function renderAirconList(aircons, statuses, token) {
   const acList = document.getElementById('ac-list');
   
@@ -253,13 +337,18 @@ function renderAirconList(aircons, statuses, token) {
     const st = statuses[ac.id];
     const isOn = st?.isOn ?? false;
     const icon = getModeIcon(st?.mode);
+    const modeLabel = getModeLabel(st?.mode);
+    const unit = st?.tempUnit === 'f' ? '°F' : '°C';
+    const tempText = st?.temp ? `${st.temp}${unit}` : '';
+    const subtitle = [modeLabel, tempText].filter(Boolean).join(' / ');
 
     return `
-      <div class="room-card" data-id="${ac.id}">
+      <div class="room-card" data-id="${ac.id}" role="button" tabindex="0" aria-label="${ac.name}の詳細設定">
         <div class="room-header">
           <span class="room-name">${icon} ${ac.name}</span>
           <span class="status ${isOn ? 'on' : 'off'}" id="status-${ac.id}">${isOn ? 'ON' : 'OFF'}</span>
         </div>
+        <div class="room-subtitle" id="subtitle-${ac.id}">${subtitle || '—'}</div>
         <div class="button-group">
           <button class="btn btn-on" data-id="${ac.id}" data-action="on">ON</button>
           <button class="btn btn-off" data-id="${ac.id}" data-action="off">OFF</button>
@@ -270,7 +359,10 @@ function renderAirconList(aircons, statuses, token) {
 
   // ボタンイベント
   acList.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', async (e) => {
+      // 親カードのクリック（詳細画面）を止める
+      e.stopPropagation();
+
       const id = btn.dataset.id;
       const action = btn.dataset.action;
       const ac = aircons.find(a => a.id === id);
@@ -286,6 +378,29 @@ function renderAirconList(aircons, statuses, token) {
         showToast(`エラー: ${ac.name}の操作に失敗${detail}`, 'error');
       } finally {
         setButtonsLoading(id, false);
+      }
+    });
+  });
+
+  // カードクリックで詳細へ（ドリルダウン）
+  acList.querySelectorAll('.room-card').forEach(card => {
+    const open = () => {
+      const id = card.dataset.id;
+      const ac = aircons.find(a => a.id === id);
+      if (!ac) return;
+      showDetailView({ ac, status: statuses[id], token });
+    };
+
+    card.addEventListener('click', (e) => {
+      // ボタンからのクリックは除外
+      if (e.target && e.target.closest && e.target.closest('button')) return;
+      open();
+    });
+
+    card.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        open();
       }
     });
   });

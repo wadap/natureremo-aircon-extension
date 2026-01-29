@@ -166,6 +166,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .room-subtitle {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
       margin-bottom: 10px;
     }
 
@@ -407,6 +413,34 @@
         <button class="btn-all-off" id="btn-all-off">🔌 すべてOFF</button>
       </div>
       <div class="settings-link" id="btn-settings">⚙️ 設定を変更</div>
+    </div>
+
+    <!-- 詳細設定画面 -->
+    <div id="detail-view" class="hidden">
+      <h1 id="detail-title">🌡️ 詳細設定</h1>
+
+      <div class="setup-section">
+        <div class="input-group">
+          <label>運転モード</label>
+          <select id="detail-mode" class="btn-secondary" style="width:100%; margin-top:0;">
+            <option value="auto">自動</option>
+            <option value="cool">冷房</option>
+            <option value="warm">暖房</option>
+            <option value="dry">除湿</option>
+            <option value="blow">送風</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>温度</label>
+          <input id="detail-temp" inputmode="decimal" placeholder="例: 24" />
+        </div>
+
+        <div id="detail-error" class="error-message hidden"></div>
+
+        <button class="btn-primary" id="btn-apply-detail">適用</button>
+        <button class="btn-secondary" id="btn-back-to-main">← 戻る</button>
+      </div>
     </div>
   </div>
 
