@@ -348,7 +348,8 @@ function renderAirconList(aircons, statuses, token) {
           <span class="room-name">${icon} ${ac.name}</span>
           <div class="room-meta">
             <span class="status ${isOn ? 'on' : 'off'}" id="status-${ac.id}">${isOn ? 'ON' : 'OFF'}</span>
-            <span class="drilldown-hint" aria-hidden="true"><span class="chev">›</span> 詳細</span>
+            <span class="drilldown-hint" aria-hidden="true">詳細</span>
+            <span class="drilldown-arrow" aria-hidden="true">›</span>
           </div>
         </div>
         <div class="room-subtitle" id="subtitle-${ac.id}">${subtitle || '—'}</div>
