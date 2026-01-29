@@ -51,7 +51,8 @@
       margin-bottom: 6px;
     }
 
-    .input-group input {
+    .input-group input,
+    .input-group select {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -59,6 +60,12 @@
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
       font-size: 0.9rem;
+    }
+
+    /* Chrome の select / option はOSテーマに引っ張られて文字が見えなくなることがあるため明示 */
+    .input-group select option {
+      background: #16213e;
+      color: #fff;
     }
 
     .input-group input::placeholder {
@@ -96,13 +103,18 @@
       width: 100%;
       padding: 10px;
       background: rgba(255, 255, 255, 0.1);
-      color: white;
+      color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 8px;
       font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.2s ease;
       margin-top: 8px;
+    }
+
+    select.btn-secondary {
+      appearance: none;
+      -webkit-appearance: none;
     }
 
     .btn-secondary:hover {
