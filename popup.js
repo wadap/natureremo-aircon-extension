@@ -196,13 +196,17 @@ async function showMainView() {
   }
 
   // 現在の状態を取得
+  // statuses[id] = { isOn: boolean, mode?: string }
   let statuses = {};
   try {
     const appliances = await fetchAppliances(token);
     selectedAircons.forEach(ac => {
       const found = appliances.find(a => a.id === ac.id);
       if (found && found.settings) {
-        statuses[ac.id] = found.settings.button !== 'power-off';
+        statuses[ac.id] = {
+          isOn: found.settings.button !== 'power-off',
+          mode: found.settings.mode
+        };
       }
     });
   } catch (error) {
@@ -225,15 +229,35 @@ async function showMainView() {
   };
 }
 
+function getModeIcon(mode) {
+  switch (mode) {
+    case 'cool':
+      return '❄️';
+    case 'warm':
+      return '♨️';
+    case 'dry':
+      return '💧';
+    case 'blow':
+      return '🌀';
+    case 'auto':
+      return '🌡️';
+    default:
+      return '🌡️';
+  }
+}
+
 function renderAirconList(aircons, statuses, token) {
   const acList = document.getElementById('ac-list');
   
   acList.innerHTML = aircons.map(ac => {
-    const isOn = statuses[ac.id] || false;
+    const st = statuses[ac.id];
+    const isOn = st?.isOn ?? false;
+    const icon = getModeIcon(st?.mode);
+
     return `
       <div class="room-card" data-id="${ac.id}">
         <div class="room-header">
-          <span class="room-name">❄️ ${ac.name}</span>
+          <span class="room-name">${icon} ${ac.name}</span>
           <span class="status ${isOn ? 'on' : 'off'}" id="status-${ac.id}">${isOn ? 'ON' : 'OFF'}</span>
         </div>
         <div class="button-group">
