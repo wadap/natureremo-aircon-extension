@@ -148,11 +148,11 @@ function showDeviceSelectView(aircons) {
     </label>
   `).join('');
 
-  // チェックボックス変更時
-  deviceList.addEventListener('change', () => {
+  // チェックボックス変更時（多重登録を避けるため onchange で上書き）
+  deviceList.onchange = () => {
     const checked = deviceList.querySelectorAll('input:checked');
     btnSave.disabled = checked.length === 0;
-  });
+  };
 
   // 保存ボタン
   btnSave.onclick = async () => {
@@ -246,7 +246,8 @@ function renderAirconList(aircons, statuses, token) {
         updateStatus(id, action === 'on');
         showToast(`${ac.name}を${action === 'on' ? 'ON' : 'OFF'}にしました`);
       } catch (error) {
-        showToast(`エラー: ${ac.name}の操作に失敗`, 'error');
+        const detail = error?.message ? ` (${error.message})` : '';
+        showToast(`エラー: ${ac.name}の操作に失敗${detail}`, 'error');
       } finally {
         setButtonsLoading(id, false);
       }
