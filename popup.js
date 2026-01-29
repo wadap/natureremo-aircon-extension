@@ -113,7 +113,7 @@ function initTokenView() {
       }
 
       await Storage.set({ token, allAircons: aircons });
-      showDeviceSelectView(aircons);
+      await showDeviceSelectView(aircons);
     } catch (error) {
       tokenError.textContent = error.message;
       tokenError.classList.remove('hidden');
@@ -132,7 +132,7 @@ function initTokenView() {
 }
 
 // デバイス選択画面
-function showDeviceSelectView(aircons) {
+async function showDeviceSelectView(aircons) {
   UI.showOnly('device-select-view');
   
   const deviceList = document.getElementById('device-list');
@@ -148,11 +148,23 @@ function showDeviceSelectView(aircons) {
     </label>
   `).join('');
 
+  // 前回の選択状態を復元
+  const { selectedAircons } = await Storage.get(['selectedAircons']);
+  if (selectedAircons && selectedAircons.length > 0) {
+    const selectedIds = new Set(selectedAircons.map(a => a.id));
+    deviceList.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.checked = selectedIds.has(input.value);
+    });
+  }
+
   // チェックボックス変更時（多重登録を避けるため onchange で上書き）
   deviceList.onchange = () => {
     const checked = deviceList.querySelectorAll('input:checked');
     btnSave.disabled = checked.length === 0;
   };
+
+  // 初期状態のボタン活性を反映
+  deviceList.onchange();
 
   // 保存ボタン
   btnSave.onclick = async () => {
@@ -206,7 +218,7 @@ async function showMainView() {
   document.getElementById('btn-settings').onclick = async () => {
     const { allAircons } = await Storage.get(['allAircons']);
     if (allAircons) {
-      showDeviceSelectView(allAircons);
+      await showDeviceSelectView(allAircons);
     } else {
       UI.showOnly('token-view');
     }
@@ -321,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const appliances = await fetchAppliances(token);
       const aircons = appliances.filter(a => a.type === 'AC');
       await Storage.set({ allAircons: aircons });
-      showDeviceSelectView(aircons);
+      await showDeviceSelectView(aircons);
     } catch {
       UI.showOnly('token-view');
     }
