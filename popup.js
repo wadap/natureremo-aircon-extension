@@ -346,7 +346,10 @@ function renderAirconList(aircons, statuses, token) {
       <div class="room-card" data-id="${ac.id}" role="button" tabindex="0" aria-label="${ac.name}の詳細設定">
         <div class="room-header">
           <span class="room-name">${icon} ${ac.name}</span>
-          <span class="status ${isOn ? 'on' : 'off'}" id="status-${ac.id}">${isOn ? 'ON' : 'OFF'}</span>
+          <div class="room-meta">
+            <span class="status ${isOn ? 'on' : 'off'}" id="status-${ac.id}">${isOn ? 'ON' : 'OFF'}</span>
+            <span class="drilldown-hint" aria-hidden="true"><span class="chev">›</span> 詳細</span>
+          </div>
         </div>
         <div class="room-subtitle" id="subtitle-${ac.id}">${subtitle || '—'}</div>
         <div class="button-group">

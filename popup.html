@@ -172,6 +172,49 @@
       padding: 14px;
       margin-bottom: 10px;
       border: 1px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+      position: relative;
+    }
+
+    .room-card:hover {
+      border-color: rgba(255, 112, 67, 0.35);
+      background: rgba(255, 255, 255, 0.10);
+      transform: translateY(-1px);
+    }
+
+    .room-card:active {
+      transform: translateY(0);
+    }
+
+    .room-card:focus {
+      outline: none;
+    }
+
+    .room-card:focus-visible {
+      outline: 2px solid rgba(255, 112, 67, 0.55);
+      outline-offset: 2px;
+    }
+
+    .room-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drilldown-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.55);
+      user-select: none;
+    }
+
+    .drilldown-hint .chev {
+      font-size: 0.9rem;
+      line-height: 1;
+      opacity: 0.9;
     }
 
     .room-header {
