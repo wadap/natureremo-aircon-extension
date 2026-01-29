@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 16px;
+      font-weight: 400;
+      font-size: 1.1rem;
+      color: #e0e0e0;
+    }
+
+    h2 {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: #e0e0e0;
+    }
+
+    /* セットアップ画面 */
+    .setup-section {
+      margin-bottom: 16px;
+    }
+
+    .input-group {
+      margin-bottom: 12px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 6px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 0.9rem;
+    }
+
+    .input-group input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #ff7043;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* デバイス選択 */
+    .device-list {
+      max-height: 280px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+
+    .device-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .device-item:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .device-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-right: 12px;
+      cursor: pointer;
+    }
+
+    .device-info {
+      flex: 1;
+    }
+
+    .device-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .device-detail {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 2px;
+    }
+
+    /* メイン操作画面 */
+    .room-card {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .room-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .room-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .status {
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .status.on {
+      background: rgba(76, 175, 80, 0.3);
+      color: #81c784;
+    }
+
+    .status.off {
+      background: rgba(158, 158, 158, 0.3);
+      color: #bdbdbd;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-on {
+      background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
+      color: white;
+    }
+
+    .btn-on:hover:not(:disabled) {
+      background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+    }
+
+    .btn-off {
+      background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
+      color: white;
+    }
+
+    .btn-off:hover:not(:disabled) {
+      background: linear-gradient(135deg, #607d8b 0%, #546e7a 100%);
+    }
+
+    .all-off-section {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-all-off {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-all-off:hover:not(:disabled) {
+      background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+    }
+
+    .btn-all-off:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* 設定リンク */
+    .settings-link {
+      display: block;
+      text-align: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.75rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .settings-link:hover {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* トースト */
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: rgba(76, 175, 80, 0.95);
+      color: white;
+    }
+
+    .toast.error {
+      background: rgba(244, 67, 54, 0.95);
+      color: white;
+    }
+
+    /* ローディング */
+    .loading {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-overlay {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* エラーメッセージ */
+    .error-message {
+      background: rgba(244, 67, 54, 0.2);
+      border: 1px solid rgba(244, 67, 54, 0.5);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      color: #ef9a9a;
+    }
+
+    /* 空状態 */
+    .empty-state {
+      text-align: center;
+      padding: 30px 20px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .empty-state p {
+      margin-bottom: 12px;
+    }
+
+    /* ヘルプリンク */
+    .help-link {
+      display: block;
+      text-align: center;
+      margin-top: 8px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.7rem;
+      text-decoration: none;
+    }
+
+    .help-link:hover {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ローディング -->
+    <div id="loading-view" class="loading-overlay">
+      <span class="loading"></span>
+    </div>
+
+    <!-- セットアップ: トークン入力 -->
+    <div id="token-view" class="hidden">
+      <h1>🌡️ エアコン操作</h1>
+      <div class="setup-section">
+        <div class="input-group">
+          <label>Nature Remo アクセストークン</label>
+          <input type="password" id="token-input" placeholder="トークンを入力">
+        </div>
+        <div id="token-error" class="error-message hidden"></div>
+        <button class="btn-primary" id="btn-connect">接続</button>
+        <a class="help-link" href="https://home.nature.global/" target="_blank">トークンの取得はこちら →</a>
+      </div>
+    </div>
+
+    <!-- セットアップ: デバイス選択 -->
+    <div id="device-select-view" class="hidden">
+      <h1>🌡️ エアコンを選択</h1>
+      <div id="device-list" class="device-list"></div>
+      <button class="btn-primary" id="btn-save-devices" disabled>選択したエアコンを保存</button>
+      <button class="btn-secondary" id="btn-back-to-token">← トークン設定に戻る</button>
+    </div>
+
+    <!-- メイン操作画面 -->
+    <div id="main-view" class="hidden">
+      <h1>🌡️ エアコン操作</h1>
+      <div id="ac-list"></div>
+      <div class="all-off-section">
+        <button class="btn-all-off" id="btn-all-off">🔌 すべてOFF</button>
+      </div>
+      <div class="settings-link" id="btn-settings">⚙️ 設定を変更</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
