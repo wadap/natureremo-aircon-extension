@@ -278,43 +278,163 @@ function showDetailView({ ac, status, token }) {
   UI.showOnly('detail-view');
 
   const title = document.getElementById('detail-title');
-  const modeSelect = document.getElementById('detail-mode');
-  const tempInput = document.getElementById('detail-temp');
+  const modeButtons = document.getElementById('detail-mode-buttons');
+  const tempValueEl = document.getElementById('temp-value');
+  const tempUnitEl = document.getElementById('temp-unit');
+  const btnTempDown = document.getElementById('temp-down');
+  const btnTempUp = document.getElementById('temp-up');
   const errorBox = document.getElementById('detail-error');
   const btnApply = document.getElementById('btn-apply-detail');
   const btnBack = document.getElementById('btn-back-to-main');
 
+  // 状態管理
+  let selectedMode = status?.mode || 'auto';
+  const tempUnit = status?.tempUnit || 'c';
+
+  // モード別の温度設定
+  // auto: 相対温度 (-5 〜 +5)
+  // その他: 絶対温度 (16〜30°C / 60〜86°F)
+  const autoTempMin = -5;
+  const autoTempMax = 5;
+  const autoTempStep = 1;
+  const absoluteTempMin = tempUnit === 'f' ? 60 : 16;
+  const absoluteTempMax = tempUnit === 'f' ? 86 : 30;
+  const absoluteTempStep = 0.5;
+
+  // 初期温度値（モード別に保持）
+  let autoTemp = null;
+  let absoluteTemp = null;
+
+  // 初期値を設定
+  if (status?.temp != null) {
+    const parsedTemp = parseFloat(status.temp);
+    if (status?.mode === 'auto') {
+      autoTemp = parsedTemp;
+    } else {
+      absoluteTemp = parsedTemp;
+    }
+  }
+
   // 初期値
   const icon = getModeIcon(status?.mode);
   title.textContent = `${icon} ${ac.name}`;
-  modeSelect.value = status?.mode || 'auto';
-  tempInput.value = status?.temp || '';
   errorBox.classList.add('hidden');
+
+  // 現在のモードに応じた温度を取得
+  function getCurrentTemp() {
+    return selectedMode === 'auto' ? autoTemp : absoluteTemp;
+  }
+
+  // 現在のモードに応じた温度を設定
+  function setCurrentTemp(value) {
+    if (selectedMode === 'auto') {
+      autoTemp = value;
+    } else {
+      absoluteTemp = value;
+    }
+  }
+
+  // 現在のモードに応じた温度範囲を取得
+  function getTempRange() {
+    if (selectedMode === 'auto') {
+      return { min: autoTempMin, max: autoTempMax, step: autoTempStep };
+    }
+    return { min: absoluteTempMin, max: absoluteTempMax, step: absoluteTempStep };
+  }
+
+  // モードボタン初期化
+  function updateModeButtons() {
+    modeButtons.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === selectedMode);
+    });
+  }
+
+  // 温度表示更新
+  function updateTempDisplay() {
+    const temp = getCurrentTemp();
+    const { min, max } = getTempRange();
+
+    if (temp === null) {
+      tempValueEl.textContent = '--';
+      if (selectedMode === 'auto') {
+        tempUnitEl.textContent = '';
+      } else {
+        tempUnitEl.textContent = tempUnit === 'f' ? '°F' : '°C';
+      }
+      btnTempDown.disabled = true;
+      btnTempUp.disabled = true;
+    } else {
+      if (selectedMode === 'auto') {
+        // 相対温度: +5, 0, -3 のように表示
+        const prefix = temp > 0 ? '+' : '';
+        tempValueEl.textContent = prefix + temp.toFixed(0);
+        tempUnitEl.textContent = '';
+      } else {
+        // 絶対温度: 24.5°C のように表示
+        tempValueEl.textContent = temp % 1 === 0 ? temp.toFixed(0) : temp.toFixed(1);
+        tempUnitEl.textContent = tempUnit === 'f' ? '°F' : '°C';
+      }
+      btnTempDown.disabled = temp <= min;
+      btnTempUp.disabled = temp >= max;
+    }
+  }
+
+  updateModeButtons();
+  updateTempDisplay();
+
+  // モードボタンクリック
+  modeButtons.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.onclick = () => {
+      selectedMode = btn.dataset.mode;
+      updateModeButtons();
+      updateTempDisplay();
+    };
+  });
+
+  // 温度上下ボタン
+  btnTempDown.onclick = () => {
+    const { min, step } = getTempRange();
+    let temp = getCurrentTemp();
+    if (temp === null) {
+      // 初期値を設定
+      temp = selectedMode === 'auto' ? 0 : (tempUnit === 'f' ? 72 : 24);
+    } else if (temp > min) {
+      temp = Math.round((temp - step) * 10) / 10;
+    }
+    setCurrentTemp(temp);
+    updateTempDisplay();
+  };
+
+  btnTempUp.onclick = () => {
+    const { max, step } = getTempRange();
+    let temp = getCurrentTemp();
+    if (temp === null) {
+      // 初期値を設定
+      temp = selectedMode === 'auto' ? 0 : (tempUnit === 'f' ? 72 : 24);
+    } else if (temp < max) {
+      temp = Math.round((temp + step) * 10) / 10;
+    }
+    setCurrentTemp(temp);
+    updateTempDisplay();
+  };
 
   btnBack.onclick = () => showMainView();
 
   btnApply.onclick = async () => {
-    const operation_mode = modeSelect.value;
-    const rawTemp = tempInput.value.trim();
-
     errorBox.classList.add('hidden');
-
-    if (rawTemp && !/^\d+(\.\d+)?$/.test(rawTemp)) {
-      errorBox.textContent = '温度は数値で入力してください';
-      errorBox.classList.remove('hidden');
-      return;
-    }
 
     btnApply.disabled = true;
     btnApply.innerHTML = '<span class="loading"></span> 適用中...';
 
     try {
-      // NOTE: swagger上は必須項目が多いが、実際は部分的な更新が可能なため必要なものだけ送る
       const params = {
-        button: '', // 変更を適用するためON扱いにする
-        operation_mode
+        button: '',
+        operation_mode: selectedMode
       };
-      if (rawTemp) params.temperature = rawTemp;
+      const temp = getCurrentTemp();
+      if (temp !== null) {
+        params.temperature = String(temp);
+      }
 
       await setAirconSettings(token, ac.id, params);
       showToast(`${ac.name}の設定を更新しました`);

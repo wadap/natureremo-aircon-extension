@@ -447,6 +447,109 @@
       color: rgba(255, 255, 255, 0.7);
       text-decoration: underline;
     }
+
+    /* 運転モードボタン群 */
+    .mode-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .mode-btn {
+      flex: 1 1 calc(33.333% - 4px);
+      min-width: 0;
+      padding: 10px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .mode-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
+      border-color: #ff7043;
+      font-weight: 500;
+    }
+
+    .mode-btn .mode-icon {
+      display: block;
+      font-size: 1.1rem;
+      margin-bottom: 2px;
+    }
+
+    .mode-btn .mode-label {
+      display: block;
+      font-size: 0.72rem;
+    }
+
+    /* 温度ステッパー */
+    .temp-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .temp-stepper-btn {
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 300;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .temp-stepper-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .temp-stepper-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .temp-stepper-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .temp-display {
+      min-width: 80px;
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .temp-display .temp-unit {
+      font-size: 0.9rem;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+
+    .temp-na {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -495,18 +598,39 @@
       <div class="setup-section">
         <div class="input-group">
           <label>運転モード</label>
-          <select id="detail-mode" class="btn-secondary" style="width:100%; margin-top:0;">
-            <option value="auto">自動</option>
-            <option value="cool">冷房</option>
-            <option value="warm">暖房</option>
-            <option value="dry">除湿</option>
-            <option value="blow">送風</option>
-          </select>
+          <div class="mode-buttons" id="detail-mode-buttons">
+            <button type="button" class="mode-btn" data-mode="auto">
+              <span class="mode-icon">🌡️</span>
+              <span class="mode-label">自動</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="cool">
+              <span class="mode-icon">❄️</span>
+              <span class="mode-label">冷房</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="warm">
+              <span class="mode-icon">♨️</span>
+              <span class="mode-label">暖房</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="dry">
+              <span class="mode-icon">💧</span>
+              <span class="mode-label">除湿</span>
+            </button>
+            <button type="button" class="mode-btn" data-mode="blow">
+              <span class="mode-icon">🌀</span>
+              <span class="mode-label">送風</span>
+            </button>
+          </div>
         </div>
 
         <div class="input-group">
           <label>温度</label>
-          <input id="detail-temp" inputmode="decimal" placeholder="例: 24" />
+          <div class="temp-stepper" id="detail-temp-stepper">
+            <button type="button" class="temp-stepper-btn" id="temp-down">−</button>
+            <div class="temp-display" id="temp-display">
+              <span id="temp-value">--</span><span class="temp-unit" id="temp-unit">°C</span>
+            </div>
+            <button type="button" class="temp-stepper-btn" id="temp-up">+</button>
+          </div>
         </div>
 
         <div id="detail-error" class="error-message hidden"></div>
