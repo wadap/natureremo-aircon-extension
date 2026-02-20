@@ -1,13 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "エアコン操作 - Nature Remo",
+  "name": "エアコンスイッチャー for Nature Remo",
   "version": "2.0",
   "description": "Nature Remoでエアコンを簡単操作",
   "permissions": [
     "storage"
-  ],
-  "host_permissions": [
-    "https://api.nature.global/*"
   ],
   "action": {
     "default_popup": "popup.html",

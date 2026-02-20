@@ -1,10 +1,10 @@
-# プライバシーポリシー — エアコン操作 - Nature Remo
+# プライバシーポリシー — エアコンスイッチャー for Nature Remo
 
 最終更新日: 2025年2月20日
 
 ## はじめに
 
-「エアコン操作 - Nature Remo」（以下「本拡張機能」）は、Nature Remo Cloud API を利用してブラウザからエアコンを操作するための Chrome 拡張機能です。本プライバシーポリシーでは、本拡張機能が取り扱うデータについて説明します。
+「エアコンスイッチャー for Nature Remo」（以下「本拡張機能」）は、Nature Remo Cloud API を利用してブラウザからエアコンを操作するための Chrome 拡張機能です。本プライバシーポリシーでは、本拡張機能が取り扱うデータについて説明します。
 
 ## 収集するデータ
 
@@ -48,13 +48,13 @@ Chrome の拡張機能管理ページから本拡張機能を削除すると、�
 
 ---
 
-# Privacy Policy — AC Control - Nature Remo
+# Privacy Policy — AC Switcher for Nature Remo
 
 Last updated: February 20, 2025
 
 ## Overview
 
-"AC Control - Nature Remo" (the "Extension") is a Chrome extension for controlling air conditioners via the Nature Remo Cloud API.
+"AC Switcher for Nature Remo" (the "Extension") is a Chrome extension for controlling air conditioners via the Nature Remo Cloud API.
 
 ## Data Collected
 
