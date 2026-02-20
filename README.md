@@ -1,4 +1,4 @@
-# Nature Remo エアコン操作（Chrome拡張）
+# エアコンスイッチャー for Nature Remo（Chrome拡張）
 
 Nature Remo Cloud API を使って、ブラウザのツールバーからエアコンを素早く操作するための Chrome 拡張です。
 
