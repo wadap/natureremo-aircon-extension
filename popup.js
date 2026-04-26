@@ -1,5 +1,23 @@
 const API_BASE = 'https://api.nature.global/1';
 
+// DOM要素ビルダー: 外部由来文字列をHTMLとして解釈させないため、
+// 文字列はすべて textContent / setAttribute 経由で入る。
+function el(tag, props = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (value == null || value === false) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key === 'dataset') Object.assign(node.dataset, value);
+    else if (key in node) node[key] = value;
+    else node.setAttribute(key, value);
+  }
+  for (const child of [].concat(children)) {
+    if (child != null && child !== false) node.append(child);
+  }
+  return node;
+}
+
 // ストレージ操作
 const Storage = {
   async get(keys) {
@@ -147,15 +165,21 @@ async function showDeviceSelectView(aircons) {
   const deviceList = document.getElementById('device-list');
   const btnSave = document.getElementById('btn-save-devices');
   
-  deviceList.innerHTML = aircons.map(ac => `
-    <label class="device-item">
-      <input type="checkbox" value="${ac.id}" data-name="${ac.nickname}">
-      <div class="device-info">
-        <div class="device-name">${ac.nickname}</div>
-        <div class="device-detail">${ac.model?.manufacturer || ''} ${ac.model?.name || ''}</div>
-      </div>
-    </label>
-  `).join('');
+  deviceList.replaceChildren(...aircons.map(ac => {
+    const manuf = ac.model?.manufacturer || '';
+    const modelName = ac.model?.name || '';
+    return el('label', { class: 'device-item' }, [
+      el('input', {
+        type: 'checkbox',
+        value: ac.id,
+        dataset: { name: ac.nickname }
+      }),
+      el('div', { class: 'device-info' }, [
+        el('div', { class: 'device-name', text: ac.nickname }),
+        el('div', { class: 'device-detail', text: `${manuf} ${modelName}`.trim() })
+      ])
+    ]);
+  }));
 
   // 前回の選択状態を復元
   const { selectedAircons } = await Storage.get(['selectedAircons']);
@@ -453,33 +477,53 @@ function showDetailView({ ac, status, token }) {
 function renderAirconList(aircons, statuses, token) {
   const acList = document.getElementById('ac-list');
   
-  acList.innerHTML = aircons.map(ac => {
+  acList.replaceChildren(...aircons.map(ac => {
     const st = statuses[ac.id];
     const isOn = st?.isOn ?? false;
     const icon = getModeIcon(st?.mode);
     const modeLabel = getModeLabel(st?.mode);
     const unit = st?.tempUnit === 'f' ? '°F' : '°C';
     const tempText = st?.temp ? `${st.temp}${unit}` : '';
-    const subtitle = [modeLabel, tempText].filter(Boolean).join(' / ');
+    const subtitle = [modeLabel, tempText].filter(Boolean).join(' / ') || '—';
 
-    return `
-      <div class="room-card" data-id="${ac.id}" role="button" tabindex="0" aria-label="${ac.name}の詳細設定">
-        <div class="room-header">
-          <span class="room-name">${icon} ${ac.name}</span>
-          <div class="room-meta">
-            <span class="status ${isOn ? 'on' : 'off'}" id="status-${ac.id}">${isOn ? 'ON' : 'OFF'}</span>
-            <span class="drilldown-hint" aria-hidden="true">詳細</span>
-            <span class="drilldown-arrow" aria-hidden="true">›</span>
-          </div>
-        </div>
-        <div class="room-subtitle" id="subtitle-${ac.id}">${subtitle || '—'}</div>
-        <div class="button-group">
-          <button class="btn btn-on" data-id="${ac.id}" data-action="on">ON</button>
-          <button class="btn btn-off" data-id="${ac.id}" data-action="off">OFF</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+    return el('div', {
+      class: 'room-card',
+      role: 'button',
+      tabindex: '0',
+      'aria-label': `${ac.name}の詳細設定`,
+      dataset: { id: ac.id }
+    }, [
+      el('div', { class: 'room-header' }, [
+        el('span', { class: 'room-name', text: `${icon} ${ac.name}` }),
+        el('div', { class: 'room-meta' }, [
+          el('span', {
+            class: `status ${isOn ? 'on' : 'off'}`,
+            id: `status-${ac.id}`,
+            text: isOn ? 'ON' : 'OFF'
+          }),
+          el('span', { class: 'drilldown-hint', 'aria-hidden': 'true', text: '詳細' }),
+          el('span', { class: 'drilldown-arrow', 'aria-hidden': 'true', text: '›' })
+        ])
+      ]),
+      el('div', {
+        class: 'room-subtitle',
+        id: `subtitle-${ac.id}`,
+        text: subtitle
+      }),
+      el('div', { class: 'button-group' }, [
+        el('button', {
+          class: 'btn btn-on',
+          dataset: { id: ac.id, action: 'on' },
+          text: 'ON'
+        }),
+        el('button', {
+          class: 'btn btn-off',
+          dataset: { id: ac.id, action: 'off' },
+          text: 'OFF'
+        })
+      ])
+    ]);
+  }));
 
   // ボタンイベント
   acList.querySelectorAll('.btn').forEach(btn => {
@@ -559,17 +603,20 @@ async function allOff(token, aircons) {
   btn.disabled = true;
   btn.innerHTML = '<span class="loading"></span> 処理中...';
 
-  let successCount = 0;
+  const results = await Promise.allSettled(
+    aircons.map(ac => controlAC(token, ac.id, 'off'))
+  );
 
-  for (const ac of aircons) {
-    try {
-      await controlAC(token, ac.id, 'off');
+  let successCount = 0;
+  results.forEach((result, i) => {
+    const ac = aircons[i];
+    if (result.status === 'fulfilled') {
       updateStatus(ac.id, false);
       successCount++;
-    } catch (error) {
-      console.error(`Failed to turn off ${ac.name}:`, error);
+    } else {
+      console.error(`Failed to turn off ${ac.name}:`, result.reason);
     }
-  }
+  });
 
   btn.disabled = false;
   btn.textContent = '🔌 すべてOFF';
