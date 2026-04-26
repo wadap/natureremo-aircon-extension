@@ -264,38 +264,37 @@ async function showMainView() {
   };
 }
 
+// 運転モードの単一定義（表示順）。
+// アイコン・ラベル・詳細画面のモードボタンはすべてここから生成する。
+const MODES = [
+  { key: 'auto', icon: '🌡️', label: '自動' },
+  { key: 'cool', icon: '❄️', label: '冷房' },
+  { key: 'warm', icon: '♨️', label: '暖房' },
+  { key: 'dry',  icon: '💧', label: '除湿' },
+  { key: 'blow', icon: '🌀', label: '送風' }
+];
+
+function getMode(key) {
+  return MODES.find(m => m.key === key);
+}
+
 function getModeIcon(mode) {
-  switch (mode) {
-    case 'cool':
-      return '❄️';
-    case 'warm':
-      return '♨️';
-    case 'dry':
-      return '💧';
-    case 'blow':
-      return '🌀';
-    case 'auto':
-      return '🌡️';
-    default:
-      return '🌡️';
-  }
+  return getMode(mode)?.icon ?? '🌡️';
 }
 
 function getModeLabel(mode) {
-  switch (mode) {
-    case 'cool':
-      return '冷房';
-    case 'warm':
-      return '暖房';
-    case 'dry':
-      return '除湿';
-    case 'blow':
-      return '送風';
-    case 'auto':
-      return '自動';
-    default:
-      return '—';
-  }
+  return getMode(mode)?.label ?? '—';
+}
+
+function renderModeButtons(container) {
+  container.replaceChildren(...MODES.map(m => el('button', {
+    type: 'button',
+    class: 'mode-btn',
+    dataset: { mode: m.key }
+  }, [
+    el('span', { class: 'mode-icon', text: m.icon }),
+    el('span', { class: 'mode-label', text: m.label })
+  ])));
 }
 
 function showDetailView({ ac, status, token }) {
@@ -303,6 +302,7 @@ function showDetailView({ ac, status, token }) {
 
   const title = document.getElementById('detail-title');
   const modeButtons = document.getElementById('detail-mode-buttons');
+  renderModeButtons(modeButtons);
   const tempValueEl = document.getElementById('temp-value');
   const tempUnitEl = document.getElementById('temp-unit');
   const btnTempDown = document.getElementById('temp-down');
