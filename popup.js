@@ -302,8 +302,11 @@ function showDetailView({ ac, status, token }) {
   let absoluteTemp = null;
   if (status?.temp != null) {
     const parsed = parseFloat(status.temp);
-    if (status?.mode === 'auto') autoTemp = parsed;
-    else absoluteTemp = parsed;
+    // dry/blow など API が settings.temp を空文字で返すモードでは NaN になるため除外
+    if (!Number.isNaN(parsed)) {
+      if (status?.mode === 'auto') autoTemp = parsed;
+      else absoluteTemp = parsed;
+    }
   }
 
   title.textContent = `${getModeIcon(status?.mode)} ${ac.name}`;
