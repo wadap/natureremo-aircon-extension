@@ -1,29 +1,61 @@
 // 詳細画面の温度計算（純関数）。UIに依存せず単体テスト可能。
-//   auto: 相対温度 (-5 〜 +5、刻み 1)
-//   その他: 絶対温度 (16〜30°C / 60〜86°F、刻み 0.5)
+// 各モードで有効な温度値は API の aircon.range.modes.<mode>.temp が真。
+// rangeModes が取れない場合のみ汎用フォールバックを使う。
 
-export function getTempRange(mode, tempUnit) {
-  if (mode === 'auto') return { min: -5, max: 5, step: 1 };
-  return tempUnit === 'f'
-    ? { min: 60, max: 86, step: 0.5 }
-    : { min: 16, max: 30, step: 0.5 };
+function fallbackValidTemps(mode, tempUnit) {
+  if (mode === 'auto') return [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+  if (mode === 'cool' || mode === 'warm') {
+    return tempUnit === 'f'
+      ? Array.from({ length: 27 }, (_, i) => 60 + i)   // 60..86 °F
+      : Array.from({ length: 15 }, (_, i) => 16 + i);  // 16..30 °C
+  }
+  return []; // dry, blow など
 }
 
-export function getDefaultTemp(mode, tempUnit) {
-  if (mode === 'auto') return 0;
-  return tempUnit === 'f' ? 72 : 24;
+// このモードで設定可能な温度値を昇順の数値配列で返す。
+// 空配列ならこのモードは温度設定を受け付けない（dry/blow が典型）。
+export function getValidTemps(rangeModes, mode, tempUnit) {
+  const raw = rangeModes?.[mode]?.temp;
+  if (!Array.isArray(raw)) return fallbackValidTemps(mode, tempUnit);
+  return raw
+    .map(s => parseFloat(s))
+    .filter(n => !Number.isNaN(n))
+    .sort((a, b) => a - b);
 }
 
-// direction = +1 で上げ、-1 で下げ。範囲外には張り付き、null は初期値に置換。
-export function stepTemp(current, direction, mode, tempUnit) {
-  const range = getTempRange(mode, tempUnit);
-  if (current === null) return getDefaultTemp(mode, tempUnit);
-  const next = current + direction * range.step;
-  if (next < range.min || next > range.max) return current;
-  return Math.round(next * 10) / 10;
+// 有効値配列内で current に最も近い値を返す。
+export function clampToValid(current, validTemps) {
+  if (validTemps.length === 0) return null;
+  if (current === null) return null;
+  let best = validTemps[0];
+  let bestDiff = Math.abs(current - best);
+  for (const v of validTemps) {
+    const d = Math.abs(current - v);
+    if (d < bestDiff) { bestDiff = d; best = v; }
+  }
+  return best;
 }
 
-// 表示文字列に整形。
+// direction = +1 / -1 で隣接の有効値へ。null は中央値で初期化。
+export function stepTemp(current, direction, validTemps) {
+  if (validTemps.length === 0) return null;
+  if (current === null) return validTemps[Math.floor(validTemps.length / 2)];
+  const snapped = clampToValid(current, validTemps);
+  const idx = validTemps.indexOf(snapped);
+  const newIdx = Math.max(0, Math.min(validTemps.length - 1, idx + direction));
+  return validTemps[newIdx];
+}
+
+export function isAtMin(current, validTemps) {
+  if (validTemps.length === 0 || current === null) return true;
+  return current <= validTemps[0];
+}
+
+export function isAtMax(current, validTemps) {
+  if (validTemps.length === 0 || current === null) return true;
+  return current >= validTemps[validTemps.length - 1];
+}
+
 export function formatTemp(temp, mode, tempUnit) {
   const unitSuffix = tempUnit === 'f' ? '°F' : '°C';
   if (temp === null) {

@@ -2,7 +2,7 @@ import { fetchAppliances, controlAC, setAirconSettings } from './api.js';
 import { Storage } from './storage.js';
 import { el, UI, showToast, withLoading } from './dom.js';
 import { getModeIcon, getModeLabel, renderModeButtons } from './modes.js';
-import { getTempRange, stepTemp, formatTemp } from './detail-temp.js';
+import { getValidTemps, clampToValid, stepTemp, formatTemp, isAtMin, isAtMax } from './detail-temp.js';
 
 // トークン入力画面
 function initTokenView() {
@@ -112,7 +112,8 @@ async function showMainView() {
   }
 
   // 現在の状態を取得
-  // statuses[id] = { isOn: boolean, mode?: string, temp?, tempUnit? }
+  // statuses[id] = { isOn, mode, temp, tempUnit, rangeModes }
+  // rangeModes: appliance.aircon.range.modes — モード別の有効値定義
   let statuses = {};
   try {
     const appliances = await fetchAppliances(token);
@@ -123,7 +124,8 @@ async function showMainView() {
           isOn: found.settings.button !== 'power-off',
           mode: found.settings.mode,
           temp: found.settings.temp,
-          tempUnit: found.settings.temp_unit
+          tempUnit: found.settings.temp_unit,
+          rangeModes: found.aircon?.range?.modes
         };
       }
     });
@@ -292,6 +294,8 @@ function showDetailView({ ac, status, token }) {
 
   let selectedMode = status?.mode || 'auto';
   const tempUnit = status?.tempUnit || 'c';
+  const rangeModes = status?.rangeModes;
+  const tempStepperGroup = document.getElementById('detail-temp-stepper').closest('.input-group');
 
   // モード別に温度を保持（auto は相対、その他は絶対）
   let autoTemp = null;
@@ -310,6 +314,7 @@ function showDetailView({ ac, status, token }) {
     if (selectedMode === 'auto') autoTemp = value;
     else absoluteTemp = value;
   };
+  const currentValidTemps = () => getValidTemps(rangeModes, selectedMode, tempUnit);
 
   function updateModeButtons() {
     modeButtons.querySelectorAll('.mode-btn').forEach(btn => {
@@ -318,13 +323,20 @@ function showDetailView({ ac, status, token }) {
   }
 
   function updateTempDisplay() {
+    const validTemps = currentValidTemps();
     const temp = getCurrentTemp();
-    const range = getTempRange(selectedMode, tempUnit);
     const { value, unit } = formatTemp(temp, selectedMode, tempUnit);
     tempValueEl.textContent = value;
     tempUnitEl.textContent = unit;
-    btnTempDown.disabled = temp === null || temp <= range.min;
-    btnTempUp.disabled = temp === null || temp >= range.max;
+
+    if (validTemps.length === 0) {
+      // このモードは温度設定を受け付けない（dry/blow など）
+      tempStepperGroup.classList.add('hidden');
+    } else {
+      tempStepperGroup.classList.remove('hidden');
+      btnTempDown.disabled = isAtMin(temp, validTemps);
+      btnTempUp.disabled = isAtMax(temp, validTemps);
+    }
   }
 
   updateModeButtons();
@@ -333,17 +345,23 @@ function showDetailView({ ac, status, token }) {
   modeButtons.querySelectorAll('.mode-btn').forEach(btn => {
     btn.onclick = () => {
       selectedMode = btn.dataset.mode;
+      const validTemps = currentValidTemps();
+      // 切替先で温度を受け付けるなら有効値にクランプ。
+      // 受け付けないモード（dry/blow）はステッパーを隠すだけで、保持していた値は触らず戻ったときに復元できるようにする。
+      if (validTemps.length > 0) {
+        setCurrentTemp(clampToValid(getCurrentTemp(), validTemps));
+      }
       updateModeButtons();
       updateTempDisplay();
     };
   });
 
   btnTempDown.onclick = () => {
-    setCurrentTemp(stepTemp(getCurrentTemp(), -1, selectedMode, tempUnit));
+    setCurrentTemp(stepTemp(getCurrentTemp(), -1, currentValidTemps()));
     updateTempDisplay();
   };
   btnTempUp.onclick = () => {
-    setCurrentTemp(stepTemp(getCurrentTemp(), +1, selectedMode, tempUnit));
+    setCurrentTemp(stepTemp(getCurrentTemp(), +1, currentValidTemps()));
     updateTempDisplay();
   };
 
@@ -354,8 +372,12 @@ function showDetailView({ ac, status, token }) {
     try {
       await withLoading(btnApply, '<span class="loading"></span> 適用中...', async () => {
         const params = { button: '', operation_mode: selectedMode };
+        const validTemps = currentValidTemps();
         const temp = getCurrentTemp();
-        if (temp !== null) params.temperature = String(temp);
+        // 温度を受け付けるモードでのみ temperature を送る
+        if (validTemps.length > 0 && temp !== null) {
+          params.temperature = String(temp);
+        }
         await setAirconSettings(token, ac.id, params);
       });
       showToast(`${ac.name}の設定を更新しました`);
