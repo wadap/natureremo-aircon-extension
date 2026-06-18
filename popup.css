@@ -1,3 +1,105 @@
+/* =========================================================================
+   テーマトークン
+   - :root はダーク既定（従来の見た目をベースに洗練）
+   - @media (prefers-color-scheme: light) でライトに上書き
+   - 構造（レイアウト）は変えず、色・影・余白のみトークン経由で切替
+   ========================================================================= */
+:root {
+  /* 背景・面 */
+  --bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --surface: rgba(255, 255, 255, 0.08);
+  --surface-input: rgba(255, 255, 255, 0.10);
+  --surface-hover: rgba(255, 255, 255, 0.15);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+
+  /* 文字 */
+  --text: #f0f2f5;
+  --text-heading: #e6e8ec;
+  --text-muted: rgba(255, 255, 255, 0.70);
+  --text-subtle: rgba(255, 255, 255, 0.50);
+  --text-faint: rgba(255, 255, 255, 0.40);
+
+  /* アクセント（Nature Remo 緑/ティール） */
+  --accent: #1fb6a6;
+  --accent-2: #0e9b86;
+  --accent-hover: #2bc9b8;
+  --accent-hover-2: #15a892;
+  --accent-contrast: #ffffff;
+  --accent-ring: rgba(31, 182, 166, 0.55);
+  --accent-border: rgba(31, 182, 166, 0.45);
+
+  /* ステータス pill */
+  --on-bg: rgba(38, 166, 154, 0.28);
+  --on-fg: #6fd6c6;
+  --off-bg: rgba(158, 158, 158, 0.28);
+  --off-fg: #c4c8cc;
+
+  /* OFF 操作ボタン（スレートグレー） */
+  --off-btn: #546e7a;
+  --off-btn-2: #455a64;
+  --off-btn-hover: #607d8b;
+  --off-btn-hover-2: #546e7a;
+
+  /* 危険系（全 OFF・エラー） */
+  --danger: #d32f2f;
+  --danger-2: #b71c1c;
+  --danger-hover: #e53935;
+  --danger-hover-2: #c62828;
+  --error-bg: rgba(244, 67, 54, 0.20);
+  --error-border: rgba(244, 67, 54, 0.50);
+  --error-text: #ef9a9a;
+
+  /* toast */
+  --toast-success: rgba(31, 182, 166, 0.96);
+  --toast-error: rgba(244, 67, 54, 0.96);
+
+  /* select の OS テーマ追従対策 */
+  --select-bg: #16213e;
+  --select-fg: #ffffff;
+
+  /* 形状・影 */
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.32);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: linear-gradient(135deg, #eef2f3 0%, #e2ecea 100%);
+    --surface: #ffffff;
+    --surface-input: #ffffff;
+    --surface-hover: #eef4f3;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.14);
+
+    --text: #16302d;
+    --text-heading: #1d3a36;
+    --text-muted: rgba(0, 0, 0, 0.60);
+    --text-subtle: rgba(0, 0, 0, 0.45);
+    --text-faint: rgba(0, 0, 0, 0.38);
+
+    --on-bg: rgba(31, 182, 166, 0.16);
+    --on-fg: #0c8f7c;
+    --off-bg: rgba(0, 0, 0, 0.07);
+    --off-fg: #6b7280;
+
+    --error-bg: rgba(244, 67, 54, 0.10);
+    --error-border: rgba(244, 67, 54, 0.35);
+    --error-text: #c62828;
+
+    --toast-success: rgba(14, 155, 134, 0.97);
+
+    --select-bg: #ffffff;
+    --select-fg: #16302d;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 6px 18px rgba(0, 0, 0, 0.12);
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -7,8 +109,8 @@
 body {
   width: 340px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #fff;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .container {
@@ -20,14 +122,14 @@ h1 {
   margin-bottom: 16px;
   font-weight: 400;
   font-size: 1.1rem;
-  color: #e0e0e0;
+  color: var(--text-heading);
 }
 
 h2 {
   font-size: 0.95rem;
   font-weight: 500;
   margin-bottom: 12px;
-  color: #e0e0e0;
+  color: var(--text-heading);
 }
 
 /* セットアップ画面 */
@@ -42,7 +144,7 @@ h2 {
 .input-group label {
   display: block;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
   margin-bottom: 6px;
 }
 
@@ -50,35 +152,35 @@ h2 {
 .input-group select {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-input);
+  color: var(--text);
   font-size: 0.9rem;
 }
 
 /* Chrome の select / option はOSテーマに引っ張られて文字が見えなくなることがあるため明示 */
 .input-group select option {
-  background: #16213e;
-  color: #fff;
+  background: var(--select-bg);
+  color: var(--select-fg);
 }
 
 .input-group input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-faint);
 }
 
 .input-group input:focus {
   outline: none;
-  border-color: #ff7043;
+  border-color: var(--accent);
 }
 
 .btn-primary {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: var(--accent-contrast);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
@@ -86,7 +188,7 @@ h2 {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
 }
 
 .btn-primary:disabled {
@@ -97,10 +199,10 @@ h2 {
 .btn-secondary {
   width: 100%;
   padding: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -113,7 +215,7 @@ select.btn-secondary {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--surface-hover);
 }
 
 /* デバイス選択 */
@@ -127,15 +229,17 @@ select.btn-secondary {
   display: flex;
   align-items: center;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   margin-bottom: 8px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .device-item:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--surface-hover);
+  border-color: var(--accent-border);
 }
 
 .device-item input[type="checkbox"] {
@@ -143,6 +247,7 @@ select.btn-secondary {
   height: 18px;
   margin-right: 12px;
   cursor: pointer;
+  accent-color: var(--accent);
 }
 
 .device-info {
@@ -156,25 +261,27 @@ select.btn-secondary {
 
 .device-detail {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-subtle);
   margin-top: 2px;
 }
 
 /* メイン操作画面 */
 .room-card {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   padding: 14px;
   margin-bottom: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
-  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   position: relative;
 }
 
 .room-card:hover {
-  border-color: rgba(255, 112, 67, 0.35);
-  background: rgba(255, 255, 255, 0.10);
+  border-color: var(--accent-border);
+  background: var(--surface-hover);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-1px);
 }
 
@@ -187,7 +294,7 @@ select.btn-secondary {
 }
 
 .room-card:focus-visible {
-  outline: 2px solid rgba(255, 112, 67, 0.55);
+  outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
 }
 
@@ -202,7 +309,7 @@ select.btn-secondary {
   align-items: center;
   gap: 6px;
   font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-subtle);
   user-select: none;
 }
 
@@ -215,7 +322,7 @@ select.btn-secondary {
 .drilldown-arrow {
   font-size: 1.05rem;
   line-height: 1;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-subtle);
   margin-left: 2px;
   transform: translateX(0);
   transition: transform 0.12s ease, color 0.12s ease;
@@ -223,11 +330,11 @@ select.btn-secondary {
 
 .room-card:hover .drilldown-arrow {
   transform: translateX(2px);
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--accent);
 }
 
 .room-card:focus-visible .drilldown-arrow {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--accent);
 }
 
 .room-header {
@@ -239,7 +346,7 @@ select.btn-secondary {
 
 .room-subtitle {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-subtle);
   margin-bottom: 10px;
 }
 
@@ -251,18 +358,18 @@ select.btn-secondary {
 .status {
   font-size: 0.75rem;
   padding: 3px 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+  background: var(--off-bg);
 }
 
 .status.on {
-  background: rgba(76, 175, 80, 0.3);
-  color: #81c784;
+  background: var(--on-bg);
+  color: var(--on-fg);
 }
 
 .status.off {
-  background: rgba(158, 158, 158, 0.3);
-  color: #bdbdbd;
+  background: var(--off-bg);
+  color: var(--off-fg);
 }
 
 .button-group {
@@ -274,7 +381,7 @@ select.btn-secondary {
   flex: 1;
   padding: 10px 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -287,36 +394,36 @@ select.btn-secondary {
 }
 
 .btn-on {
-  background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: var(--accent-contrast);
 }
 
 .btn-on:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ff8a65 0%, #ff7043 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
 }
 
 .btn-off {
-  background: linear-gradient(135deg, #546e7a 0%, #455a64 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--off-btn) 0%, var(--off-btn-2) 100%);
+  color: #fff;
 }
 
 .btn-off:hover:not(:disabled) {
-  background: linear-gradient(135deg, #607d8b 0%, #546e7a 100%);
+  background: linear-gradient(135deg, var(--off-btn-hover) 0%, var(--off-btn-hover-2) 100%);
 }
 
 .all-off-section {
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border);
 }
 
 .btn-all-off {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+  background: linear-gradient(135deg, var(--danger) 0%, var(--danger-2) 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -324,7 +431,7 @@ select.btn-secondary {
 }
 
 .btn-all-off:hover:not(:disabled) {
-  background: linear-gradient(135deg, #e53935 0%, #c62828 100%);
+  background: linear-gradient(135deg, var(--danger-hover) 0%, var(--danger-hover-2) 100%);
 }
 
 .btn-all-off:disabled {
@@ -338,15 +445,16 @@ select.btn-secondary {
   text-align: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid var(--border);
+  color: var(--text-subtle);
   font-size: 0.75rem;
   text-decoration: none;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
 .settings-link:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text);
 }
 
 /* トースト */
@@ -356,12 +464,13 @@ select.btn-secondary {
   left: 50%;
   transform: translateX(-50%) translateY(60px);
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.85rem;
   opacity: 0;
   transition: all 0.3s ease;
   z-index: 1000;
   white-space: nowrap;
+  box-shadow: var(--shadow-card-hover);
 }
 
 .toast.show {
@@ -370,25 +479,31 @@ select.btn-secondary {
 }
 
 .toast.success {
-  background: rgba(76, 175, 80, 0.95);
+  background: var(--toast-success);
   color: white;
 }
 
 .toast.error {
-  background: rgba(244, 67, 54, 0.95);
+  background: var(--toast-error);
   color: white;
 }
 
-/* ローディング */
+/* ローディング（ボタン内: 常に白。色付きボタン上で使われる想定） */
 .loading {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   vertical-align: middle;
+}
+
+/* 全画面ローディング: 背景上に出るのでアクセント色 */
+.loading-overlay .loading {
+  border-color: var(--border-strong);
+  border-top-color: var(--accent);
 }
 
 @keyframes spin {
@@ -408,20 +523,20 @@ select.btn-secondary {
 
 /* エラーメッセージ */
 .error-message {
-  background: rgba(244, 67, 54, 0.2);
-  border: 1px solid rgba(244, 67, 54, 0.5);
-  border-radius: 8px;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius);
   padding: 10px;
   margin-bottom: 12px;
   font-size: 0.85rem;
-  color: #ef9a9a;
+  color: var(--error-text);
 }
 
 /* 空状態 */
 .empty-state {
   text-align: center;
   padding: 30px 20px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-subtle);
 }
 
 .empty-state p {
@@ -433,13 +548,14 @@ select.btn-secondary {
   display: block;
   text-align: center;
   margin-top: 8px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-faint);
   font-size: 0.7rem;
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .help-link:hover {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted);
   text-decoration: underline;
 }
 
@@ -455,10 +571,10 @@ select.btn-secondary {
   flex: 1 1 calc(33.333% - 4px);
   min-width: 0;
   padding: 10px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -466,13 +582,14 @@ select.btn-secondary {
 }
 
 .mode-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--surface-hover);
+  border-color: var(--accent-border);
 }
 
 .mode-btn.active {
-  background: linear-gradient(135deg, #ff7043 0%, #ff5722 100%);
-  border-color: #ff7043;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
   font-weight: 500;
 }
 
@@ -499,10 +616,10 @@ select.btn-secondary {
 .temp-stepper-btn {
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--surface);
+  color: var(--text);
   font-size: 1.4rem;
   font-weight: 300;
   cursor: pointer;
@@ -514,8 +631,8 @@ select.btn-secondary {
 }
 
 .temp-stepper-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--surface-hover);
+  border-color: var(--accent-border);
 }
 
 .temp-stepper-btn:active:not(:disabled) {
@@ -532,7 +649,7 @@ select.btn-secondary {
   text-align: center;
   font-size: 1.6rem;
   font-weight: 500;
-  color: #fff;
+  color: var(--text);
 }
 
 .temp-display .temp-unit {
@@ -543,5 +660,5 @@ select.btn-secondary {
 
 .temp-na {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-subtle);
 }
