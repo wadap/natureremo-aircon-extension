@@ -114,10 +114,16 @@ function setRefreshing(on) {
 }
 
 // 操作後にキャッシュを部分更新しておくと、閉じて再度開いたときに即座に最新が出る。
-async function patchCachedStatus(id, partial) {
+// patches = { [id]: partialStatus }。複数 id を 1 回の read-modify-write でまとめて書くことで、
+// allOff のような並行操作でも更新欠落（後勝ちの上書き競合）を防ぐ。呼び出し側は必ず await する。
+async function patchCachedStatuses(patches) {
   const { cachedStatuses } = await Storage.get(['cachedStatuses']);
-  if (!cachedStatuses || !cachedStatuses[id]) return;
-  const next = { ...cachedStatuses, [id]: { ...cachedStatuses[id], ...partial } };
+  if (!cachedStatuses) return;
+  const next = { ...cachedStatuses };
+  for (const [id, partial] of Object.entries(patches)) {
+    if (!next[id]) continue;
+    next[id] = { ...next[id], ...partial };
+  }
   await Storage.set({ cachedStatuses: next });
 }
 
@@ -238,7 +244,7 @@ function renderAirconList(aircons, statuses, token) {
       try {
         await withLoading(buttons, '<span class="loading"></span>', () => controlAC(token, id, action));
         updateStatus(id, action === 'on');
-        patchCachedStatus(id, { isOn: action === 'on' });
+        await patchCachedStatuses({ [id]: { isOn: action === 'on' } });
         showToast(`${ac.name}を${action === 'on' ? 'ON' : 'OFF'}にしました`);
       } catch (error) {
         const detail = error?.message ? ` (${error.message})` : '';
@@ -287,16 +293,18 @@ async function allOff(token, aircons) {
     );
 
     let successCount = 0;
+    const cachePatches = {};
     results.forEach((result, i) => {
       const ac = aircons[i];
       if (result.status === 'fulfilled') {
         updateStatus(ac.id, false);
-        patchCachedStatus(ac.id, { isOn: false });
+        cachePatches[ac.id] = { isOn: false };
         successCount++;
       } else {
         console.error(`Failed to turn off ${ac.name}:`, result.reason);
       }
     });
+    await patchCachedStatuses(cachePatches);
 
     if (successCount === aircons.length) {
       showToast('すべてOFFにしました');
