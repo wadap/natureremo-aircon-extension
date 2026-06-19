@@ -8,14 +8,14 @@
 
 ## データモデル
 - 新キャッシュキー `cachedStatuses`:
-  ```
+  ```json
   { "<applianceId>": { isOn, mode, temp, tempUnit, rangeModes }, "_ts": <epochMs> }
   ```
   - `rangeModes` を含めることで、更新前に詳細画面を開いても温度範囲が正しい
 - 既存 `selectedAircons`（id+name）はそのまま利用
 
 ## 既存パターン delta
-- 現状 `showMainView` 内にインラインの「appliances → statuses マップ生成」ロジックがある（`popup.js:117-134` 付近）
+- 抽出前は `showMainView` 内にインラインで「appliances → statuses マップ生成」ロジックが書かれていた（リファクタ前の状態。抽出後は `popup.js` から消え、`status.js` へ移動）
 - これを純関数 **`extractStatuses(appliances, selectedAircons)` → statusMap** として新モジュール `status.js` に抽出。既存 `modes.js` / `detail-temp.js` と同じ「純ロジックは別ファイル + node:test」方針に揃える
 - キャッシュ I/O は既存 `Storage` 経由
 
