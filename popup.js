@@ -3,6 +3,7 @@ import { Storage } from './storage.js';
 import { el, UI, showToast, withLoading } from './dom.js';
 import { getModeIcon, getModeLabel, renderModeButtons } from './modes.js';
 import { getValidTemps, clampToValid, stepTemp, formatTemp, isAtMin, isAtMax } from './detail-temp.js';
+import { extractStatuses } from './status.js';
 
 // トークン入力画面
 function initTokenView() {
@@ -100,43 +101,45 @@ async function showDeviceSelectView(aircons) {
   };
 }
 
-// メイン操作画面
-async function showMainView() {
-  UI.showOnly('main-view');
+// タイトル横の更新インジケータの ON/OFF
+function setRefreshing(on) {
+  const title = document.getElementById('main-title');
+  if (!title) return;
+  const existing = title.querySelector('.title-spinner');
+  if (on && !existing) {
+    title.appendChild(el('span', { class: 'title-spinner', 'aria-hidden': 'true' }));
+  } else if (!on && existing) {
+    existing.remove();
+  }
+}
 
-  const { token, selectedAircons } = await Storage.get(['token', 'selectedAircons']);
+// 操作後にキャッシュを部分更新しておくと、閉じて再度開いたときに即座に最新が出る。
+// patches = { [id]: partialStatus }。複数 id を 1 回の read-modify-write でまとめて書くことで、
+// allOff のような並行操作でも更新欠落（後勝ちの上書き競合）を防ぐ。呼び出し側は必ず await する。
+async function patchCachedStatuses(patches) {
+  const { cachedStatuses } = await Storage.get(['cachedStatuses']);
+  if (!cachedStatuses) return;
+  const next = { ...cachedStatuses };
+  for (const [id, partial] of Object.entries(patches)) {
+    if (!next[id]) continue;
+    next[id] = { ...next[id], ...partial };
+  }
+  await Storage.set({ cachedStatuses: next });
+}
+
+// メイン操作画面: キャッシュ即表示 → 裏で API 更新（stale-while-revalidate）
+async function showMainView() {
+  const { token, selectedAircons, cachedStatuses } = await Storage.get([
+    'token', 'selectedAircons', 'cachedStatuses'
+  ]);
 
   if (!token || !selectedAircons || selectedAircons.length === 0) {
     UI.showOnly('token-view');
     return;
   }
 
-  // 現在の状態を取得
-  // statuses[id] = { isOn, mode, temp, tempUnit, rangeModes }
-  // rangeModes: appliance.aircon.range.modes — モード別の有効値定義
-  let statuses = {};
-  try {
-    const appliances = await fetchAppliances(token);
-    selectedAircons.forEach(ac => {
-      const found = appliances.find(a => a.id === ac.id);
-      if (found && found.settings) {
-        statuses[ac.id] = {
-          isOn: found.settings.button !== 'power-off',
-          mode: found.settings.mode,
-          temp: found.settings.temp,
-          tempUnit: found.settings.temp_unit,
-          rangeModes: found.aircon?.range?.modes
-        };
-      }
-    });
-  } catch (error) {
-    console.error('Status fetch failed:', error);
-  }
-
-  renderAirconList(selectedAircons, statuses, token);
-
+  // 全 OFF / 設定 ボタンのハンドラは fetch 結果に依存しないので即バインド。
   document.getElementById('btn-all-off').onclick = () => allOff(token, selectedAircons);
-
   document.getElementById('btn-settings').onclick = async () => {
     const { allAircons } = await Storage.get(['allAircons']);
     if (allAircons) {
@@ -145,6 +148,36 @@ async function showMainView() {
       UI.showOnly('token-view');
     }
   };
+
+  // キャッシュがあれば API 待ちなしで即描画。無ければ初回としてローディング表示のまま待つ。
+  const hasCache = cachedStatuses
+    && Object.keys(cachedStatuses).some(k => k !== '_ts');
+  if (hasCache) {
+    UI.showOnly('main-view');
+    renderAirconList(selectedAircons, cachedStatuses, token);
+    setRefreshing(true);
+  }
+
+  // バックグラウンド更新
+  try {
+    const appliances = await fetchAppliances(token);
+    const statuses = extractStatuses(appliances, selectedAircons);
+    await Storage.set({ cachedStatuses: { ...statuses, _ts: Date.now() } });
+    UI.showOnly('main-view');
+    renderAirconList(selectedAircons, statuses, token);
+  } catch (error) {
+    console.error('Status fetch failed:', error);
+    if (hasCache) {
+      // キャッシュ表示は維持したまま、更新失敗だけ控えめに知らせる
+      showToast('最新の状態を取得できませんでした', 'error');
+    } else {
+      // 初回でキャッシュ無し: 空でも操作可能な画面を見せる
+      UI.showOnly('main-view');
+      renderAirconList(selectedAircons, {}, token);
+    }
+  } finally {
+    setRefreshing(false);
+  }
 }
 
 function renderAirconList(aircons, statuses, token) {
@@ -211,6 +244,7 @@ function renderAirconList(aircons, statuses, token) {
       try {
         await withLoading(buttons, '<span class="loading"></span>', () => controlAC(token, id, action));
         updateStatus(id, action === 'on');
+        await patchCachedStatuses({ [id]: { isOn: action === 'on' } });
         showToast(`${ac.name}を${action === 'on' ? 'ON' : 'OFF'}にしました`);
       } catch (error) {
         const detail = error?.message ? ` (${error.message})` : '';
@@ -259,15 +293,18 @@ async function allOff(token, aircons) {
     );
 
     let successCount = 0;
+    const cachePatches = {};
     results.forEach((result, i) => {
       const ac = aircons[i];
       if (result.status === 'fulfilled') {
         updateStatus(ac.id, false);
+        cachePatches[ac.id] = { isOn: false };
         successCount++;
       } else {
         console.error(`Failed to turn off ${ac.name}:`, result.reason);
       }
     });
+    await patchCachedStatuses(cachePatches);
 
     if (successCount === aircons.length) {
       showToast('すべてOFFにしました');
