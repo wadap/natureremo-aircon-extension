@@ -40,7 +40,7 @@ jobs:
           zip -r "$ZIP_NAME" \
             manifest.json \
             popup.html popup.css popup.js \
-            api.js storage.js dom.js modes.js detail-temp.js \
+            api.js storage.js dom.js modes.js detail-temp.js status.js \
             icons/
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
 
