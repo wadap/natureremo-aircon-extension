@@ -1,9 +1,9 @@
 import { fetchAppliances, controlAC, setAirconSettings } from './api.js';
 import { Storage, STORAGE_KEYS as KEYS } from './storage.js';
 import { el, UI, showToast, withLoading } from './dom.js';
-import { getModeIcon, getModeLabel, renderModeButtons } from './modes.js';
+import { getModeIcon, renderModeButtons } from './modes.js';
 import { getValidTemps, clampToValid, stepTemp, formatTemp, isAtMin, isAtMax } from './detail-temp.js';
-import { extractStatuses } from './status.js';
+import { extractStatuses, statusPatchFromSettings, formatSubtitle } from './status.js';
 
 // トークン入力画面
 function initTokenView() {
@@ -182,17 +182,17 @@ async function showMainView() {
   }
 }
 
+// 一覧に描画中の状態。ON/OFF の応答で部分更新し、詳細画面を開くときもここから読む。
+let renderedStatuses = {};
+
 function renderAirconList(aircons, statuses, token) {
   const acList = document.getElementById('ac-list');
+  renderedStatuses = { ...statuses };
 
   acList.replaceChildren(...aircons.map(ac => {
     const st = statuses[ac.id];
     const isOn = st?.isOn ?? false;
     const icon = getModeIcon(st?.mode);
-    const modeLabel = getModeLabel(st?.mode);
-    const unit = st?.tempUnit === 'f' ? '°F' : '°C';
-    const tempText = st?.temp ? `${st.temp}${unit}` : '';
-    const subtitle = [modeLabel, tempText].filter(Boolean).join(' / ') || '—';
 
     return el('div', {
       class: 'room-card',
@@ -202,7 +202,7 @@ function renderAirconList(aircons, statuses, token) {
       dataset: { id: ac.id }
     }, [
       el('div', { class: 'room-header' }, [
-        el('span', { class: 'room-name', text: `${icon} ${ac.name}` }),
+        el('span', { class: 'room-name', id: `name-${ac.id}`, text: `${icon} ${ac.name}` }),
         el('div', { class: 'room-meta' }, [
           el('span', {
             class: `status ${isOn ? 'on' : 'off'}`,
@@ -216,7 +216,7 @@ function renderAirconList(aircons, statuses, token) {
       el('div', {
         class: 'room-subtitle',
         id: `subtitle-${ac.id}`,
-        text: subtitle
+        text: formatSubtitle(st)
       }),
       el('div', { class: 'button-group' }, [
         el('button', {
@@ -244,9 +244,10 @@ function renderAirconList(aircons, statuses, token) {
       const buttons = card.querySelectorAll('.btn');
 
       try {
-        await withLoading(buttons, '<span class="loading"></span>', () => controlAC(token, id, action));
-        updateStatus(id, action === 'on');
-        await patchCachedStatuses({ [id]: { isOn: action === 'on' } });
+        const settings = await withLoading(buttons, '<span class="loading"></span>', () => controlAC(token, id, action));
+        const patch = statusPatchFromSettings(settings, action === 'on');
+        applyStatusPatch(ac, patch);
+        await patchCachedStatuses({ [id]: patch });
         showToast(`${ac.name}を${action === 'on' ? 'ON' : 'OFF'}にしました`);
       } catch (error) {
         const detail = error?.message ? ` (${error.message})` : '';
@@ -261,7 +262,7 @@ function renderAirconList(aircons, statuses, token) {
       const id = card.dataset.id;
       const ac = aircons.find(a => a.id === id);
       if (!ac) return;
-      showDetailView({ ac, status: statuses[id], token });
+      showDetailView({ ac, status: renderedStatuses[id], token });
     };
 
     card.addEventListener('click', (e) => {
@@ -278,12 +279,20 @@ function renderAirconList(aircons, statuses, token) {
   });
 }
 
-function updateStatus(id, isOn) {
-  const status = document.getElementById(`status-${id}`);
-  if (status) {
-    status.textContent = isOn ? 'ON' : 'OFF';
-    status.className = `status ${isOn ? 'on' : 'off'}`;
+// 操作の応答を描画中の状態にマージし、カードの ON/OFF 表示・モードアイコン・サブタイトルを書き換える。
+function applyStatusPatch(ac, patch) {
+  const next = { ...renderedStatuses[ac.id], ...patch };
+  renderedStatuses[ac.id] = next;
+
+  const pill = document.getElementById(`status-${ac.id}`);
+  if (pill) {
+    pill.textContent = next.isOn ? 'ON' : 'OFF';
+    pill.className = `status ${next.isOn ? 'on' : 'off'}`;
   }
+  const name = document.getElementById(`name-${ac.id}`);
+  if (name) name.textContent = `${getModeIcon(next.mode)} ${ac.name}`;
+  const subtitle = document.getElementById(`subtitle-${ac.id}`);
+  if (subtitle) subtitle.textContent = formatSubtitle(next);
 }
 
 async function allOff(token, aircons) {
@@ -299,8 +308,9 @@ async function allOff(token, aircons) {
     results.forEach((result, i) => {
       const ac = aircons[i];
       if (result.status === 'fulfilled') {
-        updateStatus(ac.id, false);
-        cachePatches[ac.id] = { isOn: false };
+        const patch = statusPatchFromSettings(result.value, false);
+        applyStatusPatch(ac, patch);
+        cachePatches[ac.id] = patch;
         successCount++;
       } else {
         console.error(`Failed to turn off ${ac.name}:`, result.reason);

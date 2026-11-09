@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractStatuses } from '../status.js';
+import { extractStatuses, statusPatchFromSettings, formatSubtitle } from '../status.js';
 
 const selected = [
   { id: 'a', name: 'リビング' },
@@ -72,5 +72,62 @@ describe('extractStatuses', () => {
     assert.deepEqual(extractStatuses([], selected), {});
     assert.deepEqual(extractStatuses(undefined, selected), {});
     assert.deepEqual(extractStatuses([], []), {});
+  });
+});
+
+describe('statusPatchFromSettings', () => {
+  it('maps an aircon_settings response to a partial status', () => {
+    const settings = { button: '', mode: 'cool', temp: '26', temp_unit: 'c', vol: 'auto' };
+    assert.deepEqual(statusPatchFromSettings(settings, true), {
+      isOn: true,
+      mode: 'cool',
+      temp: '26',
+      tempUnit: 'c'
+    });
+  });
+
+  it('takes isOn from the requested action, not from the response', () => {
+    const settings = { button: '', mode: 'warm', temp: '22', temp_unit: 'c' };
+    assert.equal(statusPatchFromSettings(settings, false).isOn, false);
+  });
+
+  it('keeps an empty temp so dry/blow clear the cached temperature', () => {
+    const settings = { button: '', mode: 'dry', temp: '', temp_unit: 'c' };
+    assert.deepEqual(statusPatchFromSettings(settings, true), {
+      isOn: true,
+      mode: 'dry',
+      temp: '',
+      tempUnit: 'c'
+    });
+  });
+
+  it('omits fields the response does not carry so cached values survive a merge', () => {
+    assert.deepEqual(statusPatchFromSettings({ mode: 'cool' }, true), { isOn: true, mode: 'cool' });
+    assert.deepEqual(statusPatchFromSettings({ mode: null, temp: null }, true), { isOn: true });
+  });
+
+  it('falls back to isOn only when the response is not an object', () => {
+    assert.deepEqual(statusPatchFromSettings(undefined, false), { isOn: false });
+    assert.deepEqual(statusPatchFromSettings(null, true), { isOn: true });
+    assert.deepEqual(statusPatchFromSettings('ok', true), { isOn: true });
+  });
+});
+
+describe('formatSubtitle', () => {
+  it('joins mode label and temperature', () => {
+    assert.equal(formatSubtitle({ mode: 'cool', temp: '26', tempUnit: 'c' }), '冷房 / 26°C');
+  });
+
+  it('uses °F for fahrenheit units', () => {
+    assert.equal(formatSubtitle({ mode: 'warm', temp: '72', tempUnit: 'f' }), '暖房 / 72°F');
+  });
+
+  it('shows only the mode when the temperature is empty', () => {
+    assert.equal(formatSubtitle({ mode: 'dry', temp: '', tempUnit: 'c' }), '除湿');
+  });
+
+  it('shows a dash when there is no status', () => {
+    assert.equal(formatSubtitle(undefined), '—');
+    assert.equal(formatSubtitle({}), '—');
   });
 });
