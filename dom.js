@@ -31,13 +31,19 @@ export const UI = {
   }
 };
 
+export const TOAST_DURATION_MS = 2500;
+
+let toastTimer = null;
+
 export function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.className = `toast ${type} show`;
-  setTimeout(() => {
+  // 表示中に次のトーストが来たら前のタイマーを捨てる。残すと新しい方が早く消える。
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
     toast.classList.remove('show');
-  }, 2500);
+  }, TOAST_DURATION_MS);
 }
 
 // 非同期処理中はボタンを disabled + spinner、完了したら元のラベルに戻す。
