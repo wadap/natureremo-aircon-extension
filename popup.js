@@ -1,5 +1,5 @@
 import { fetchAppliances, controlAC, setAirconSettings } from './api.js';
-import { Storage } from './storage.js';
+import { Storage, STORAGE_KEYS as KEYS } from './storage.js';
 import { el, UI, showToast, withLoading } from './dom.js';
 import { getModeIcon, getModeLabel, renderModeButtons } from './modes.js';
 import { getValidTemps, clampToValid, stepTemp, formatTemp, isAtMin, isAtMax } from './detail-temp.js';
@@ -31,7 +31,7 @@ function initTokenView() {
           throw new Error('エアコンが見つかりませんでした');
         }
 
-        await Storage.set({ token, allAircons: aircons });
+        await Storage.set({ [KEYS.TOKEN]: token, [KEYS.ALL_AIRCONS]: aircons });
         await showDeviceSelectView(aircons);
       });
     } catch (error) {
@@ -71,7 +71,7 @@ async function showDeviceSelectView(aircons) {
   }));
 
   // 前回の選択状態を復元
-  const { selectedAircons } = await Storage.get(['selectedAircons']);
+  const { [KEYS.SELECTED_AIRCONS]: selectedAircons } = await Storage.get([KEYS.SELECTED_AIRCONS]);
   if (selectedAircons && selectedAircons.length > 0) {
     const selectedIds = new Set(selectedAircons.map(a => a.id));
     deviceList.querySelectorAll('input[type="checkbox"]').forEach(input => {
@@ -92,7 +92,7 @@ async function showDeviceSelectView(aircons) {
       id: input.value,
       name: input.dataset.name
     }));
-    await Storage.set({ selectedAircons: selected });
+    await Storage.set({ [KEYS.SELECTED_AIRCONS]: selected });
     showMainView();
   };
 
@@ -117,21 +117,23 @@ function setRefreshing(on) {
 // patches = { [id]: partialStatus }。複数 id を 1 回の read-modify-write でまとめて書くことで、
 // allOff のような並行操作でも更新欠落（後勝ちの上書き競合）を防ぐ。呼び出し側は必ず await する。
 async function patchCachedStatuses(patches) {
-  const { cachedStatuses } = await Storage.get(['cachedStatuses']);
+  const { [KEYS.CACHED_STATUSES]: cachedStatuses } = await Storage.get([KEYS.CACHED_STATUSES]);
   if (!cachedStatuses) return;
   const next = { ...cachedStatuses };
   for (const [id, partial] of Object.entries(patches)) {
     if (!next[id]) continue;
     next[id] = { ...next[id], ...partial };
   }
-  await Storage.set({ cachedStatuses: next });
+  await Storage.set({ [KEYS.CACHED_STATUSES]: next });
 }
 
 // メイン操作画面: キャッシュ即表示 → 裏で API 更新（stale-while-revalidate）
 async function showMainView() {
-  const { token, selectedAircons, cachedStatuses } = await Storage.get([
-    'token', 'selectedAircons', 'cachedStatuses'
-  ]);
+  const {
+    [KEYS.TOKEN]: token,
+    [KEYS.SELECTED_AIRCONS]: selectedAircons,
+    [KEYS.CACHED_STATUSES]: cachedStatuses
+  } = await Storage.get([KEYS.TOKEN, KEYS.SELECTED_AIRCONS, KEYS.CACHED_STATUSES]);
 
   if (!token || !selectedAircons || selectedAircons.length === 0) {
     UI.showOnly('token-view');
@@ -141,7 +143,7 @@ async function showMainView() {
   // 全 OFF / 設定 ボタンのハンドラは fetch 結果に依存しないので即バインド。
   document.getElementById('btn-all-off').onclick = () => allOff(token, selectedAircons);
   document.getElementById('btn-settings').onclick = async () => {
-    const { allAircons } = await Storage.get(['allAircons']);
+    const { [KEYS.ALL_AIRCONS]: allAircons } = await Storage.get([KEYS.ALL_AIRCONS]);
     if (allAircons) {
       await showDeviceSelectView(allAircons);
     } else {
@@ -162,7 +164,7 @@ async function showMainView() {
   try {
     const appliances = await fetchAppliances(token);
     const statuses = extractStatuses(appliances, selectedAircons);
-    await Storage.set({ cachedStatuses: { ...statuses, _ts: Date.now() } });
+    await Storage.set({ [KEYS.CACHED_STATUSES]: { ...statuses, _ts: Date.now() } });
     UI.showOnly('main-view');
     renderAirconList(selectedAircons, statuses, token);
   } catch (error) {
@@ -434,7 +436,10 @@ function showDetailView({ ac, status, token }) {
 document.addEventListener('DOMContentLoaded', async () => {
   initTokenView();
 
-  const { token, selectedAircons } = await Storage.get(['token', 'selectedAircons']);
+  const {
+    [KEYS.TOKEN]: token,
+    [KEYS.SELECTED_AIRCONS]: selectedAircons
+  } = await Storage.get([KEYS.TOKEN, KEYS.SELECTED_AIRCONS]);
 
   if (token && selectedAircons && selectedAircons.length > 0) {
     showMainView();
@@ -442,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const appliances = await fetchAppliances(token);
       const aircons = appliances.filter(a => a.type === 'AC');
-      await Storage.set({ allAircons: aircons });
+      await Storage.set({ [KEYS.ALL_AIRCONS]: aircons });
       await showDeviceSelectView(aircons);
     } catch {
       UI.showOnly('token-view');
